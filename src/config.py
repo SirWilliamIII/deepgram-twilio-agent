@@ -22,18 +22,18 @@ class Settings(BaseSettings):
     port: int = 8000
 
     # Agent
-    agent_name: str = "AI Assistant"
+    agent_name: str = "Assistant"
 
     # Deepgram STT settings
-    stt_model: str = "nova-2"
+    stt_model: str = "aura-athena-en"
     stt_language: str = "en-US"
 
     # Deepgram TTS settings
-    tts_model: str = "aura-asteria-en"  # Female voice, natural sounding
+    tts_model: str = "aura-athena-en"  # Female voice, natural sounding
     tts_sample_rate: int = 8000  # Match Twilio's mulaw format
 
     # OpenAI settings
-    openai_model: str = "gpt-4o-mini"
+    openai_model: str = "gpt-4o"
     max_tokens: int = 300  # Keep responses concise for phone
 
     # Paths
