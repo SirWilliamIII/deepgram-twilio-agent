@@ -1,0 +1,21 @@
+[Unit]
+Description=Phone Agent - AI Phone Assistant
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/deepgram-twilio-agent
+Environment=PATH=/home/ubuntu/.local/bin:/usr/bin:/bin
+ExecStart=/home/ubuntu/.local/bin/uv run python -m src.main
+Restart=always
+RestartSec=5
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/ubuntu/deepgram-twilio-agent/transcripts
+
+[Install]
+WantedBy=multi-user.target
