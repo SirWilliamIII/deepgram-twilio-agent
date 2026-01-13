@@ -36,6 +36,11 @@ class Settings(BaseSettings):
     openai_model: str = "gpt-4o"
     max_tokens: int = 300  # Keep responses concise for phone
 
+    # ngrok settings
+    ngrok_enabled: bool = True
+    ngrok_authtoken: str = ""
+    ngrok_domain: str = "will.ngrok.dev"
+
     # Paths
     transcripts_dir: Path = Path("transcripts")
     system_prompt_path: Path = Path("system_prompt.md")

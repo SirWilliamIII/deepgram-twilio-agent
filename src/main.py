@@ -4,7 +4,7 @@ Phone Agent - AI-powered phone assistant.
 FastAPI application that handles:
 - Twilio webhook for incoming calls
 - WebSocket endpoint for real-time audio
-- Integration with Deepgram (STT/TTS) and Claude (brain)
+- Integration with Deepgram (STT/TTS) and OpenAI (brain)
 """
 
 import logging
@@ -13,6 +13,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, WebSocket
 from fastapi.responses import HTMLResponse, Response
+from pyngrok import ngrok, conf
 
 from src.call_handler import CallHandler
 from src.config import settings
@@ -36,12 +37,27 @@ async def lifespan(app: FastAPI):
     logger.info("Phone Agent starting up...")
     logger.info(f"Server will run on {settings.host}:{settings.port}")
 
+    # Start ngrok tunnel
+    tunnel = None
+    if settings.ngrok_enabled:
+        if settings.ngrok_authtoken:
+            conf.get_default().auth_token = settings.ngrok_authtoken
+
+        tunnel = ngrok.connect(
+            settings.port,
+            domain=settings.ngrok_domain,
+        )
+        logger.info(f"ngrok tunnel established: {tunnel.public_url}")
+
     # Pre-warm TTS client
     tts = await get_tts()
 
     yield
 
     # Cleanup
+    if tunnel:
+        ngrok.disconnect(tunnel.public_url)
+        logger.info("ngrok tunnel closed")
     await tts.close()
     logger.info("Phone Agent shut down")
 

@@ -4,6 +4,8 @@ import asyncio
 import base64
 import json
 import logging
+import random
+import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
@@ -70,6 +72,11 @@ class CallHandler:
         self._stop_speaking = asyncio.Event()
         self._tasks: list[asyncio.Task] = []
 
+        # Silence detection
+        self._last_speech_time: float = 0
+        self._silence_timeout: float = 2.0  # seconds
+        self._silence_prompted: bool = False  # avoid repeated prompts
+
     async def handle(self) -> None:
         """Main entry point - handle the complete call lifecycle."""
         try:
@@ -80,6 +87,7 @@ class CallHandler:
 
             # Start background tasks
             self._tasks.append(asyncio.create_task(self._speech_sender()))
+            self._tasks.append(asyncio.create_task(self._silence_monitor()))
 
             # Process incoming messages from Twilio
             await self._process_twilio_messages()
@@ -152,6 +160,10 @@ class CallHandler:
         if self.state == CallState.ENDED:
             return
 
+        # Reset silence tracking when we hear speech
+        self._last_speech_time = time.time()
+        self._silence_prompted = False
+
         logger.debug(
             f"Transcript: '{event.text}' "
             f"(final={event.is_final}, speech_final={event.speech_final})"
@@ -208,6 +220,41 @@ class CallHandler:
         greeting = f"Hello, this is {settings.agent_name}. How can I help you?"
         await self._speech_queue.put(greeting)
         self.conversation.add_assistant_message(greeting)
+        self._last_speech_time = time.time()
+
+    async def _silence_monitor(self) -> None:
+        """Monitor for silence and prompt if caller is quiet too long."""
+        silence_prompts = [
+            "You still there?",
+            "Hello?",
+            "Did I lose you?",
+            "Take your time, I'm here.",
+            "Anything else I can help with?",
+        ]
+
+        while self.state != CallState.ENDED:
+            try:
+                await asyncio.sleep(0.5)  # Check every 500ms
+
+                # Only prompt during LISTENING state
+                if self.state != CallState.LISTENING:
+                    continue
+
+                # Check if silence threshold exceeded
+                if self._last_speech_time > 0 and not self._silence_prompted:
+                    silence_duration = time.time() - self._last_speech_time
+                    if silence_duration >= self._silence_timeout:
+                        logger.info(f"Silence detected ({silence_duration:.1f}s), prompting")
+                        prompt = random.choice(silence_prompts)
+                        await self._speech_queue.put(prompt)
+                        self.conversation.add_assistant_message(prompt)
+                        self._silence_prompted = True
+                        self._last_speech_time = time.time()
+
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.error(f"Error in silence monitor: {e}")
 
     async def _speech_sender(self) -> None:
         """Background task that sends TTS audio to Twilio."""
