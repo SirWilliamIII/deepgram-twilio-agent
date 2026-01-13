@@ -37,6 +37,19 @@ async def lifespan(app: FastAPI):
     logger.info("Phone Agent starting up...")
     logger.info(f"Server will run on {settings.host}:{settings.port}")
 
+    # Validate required API keys
+    if not settings.deepgram_api_key:
+        logger.error("DEEPGRAM_API_KEY is not set! Check your .env file.")
+        raise ValueError("Missing DEEPGRAM_API_KEY")
+    if not settings.openai_api_key:
+        logger.error("OPENAI_API_KEY is not set! Check your .env file.")
+        raise ValueError("Missing OPENAI_API_KEY")
+
+    # Log key previews for debugging
+    dg_preview = settings.deepgram_api_key[:8] + "..."
+    oai_preview = settings.openai_api_key[:8] + "..."
+    logger.info(f"API keys loaded - Deepgram: {dg_preview}, OpenAI: {oai_preview}")
+
     # Start ngrok tunnel
     tunnel = None
     if settings.ngrok_enabled:

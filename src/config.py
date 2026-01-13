@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     agent_name: str = "Assistant"
 
     # Deepgram STT settings
-    stt_model: str = "aura-athena-en"
+    stt_model: str = "nova-2"  # STT model (nova-2 is best for real-time)
     stt_language: str = "en-US"
 
     # Deepgram TTS settings
@@ -39,7 +39,7 @@ class Settings(BaseSettings):
     # ngrok settings
     ngrok_enabled: bool = True
     ngrok_authtoken: str = ""
-    ngrok_domain: str = "will.ngrok.dev"
+    ngrok_domain: str = "jason-nonresistible-lorraine.ngrok-free.dev"
 
     # Paths
     transcripts_dir: Path = Path("transcripts")

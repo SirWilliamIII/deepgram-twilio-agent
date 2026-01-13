@@ -45,16 +45,34 @@ class DeepgramSTT:
         self._transcript_callback = on_transcript
         self._closed = False
 
+        # Validate API key is present
+        if not settings.deepgram_api_key:
+            raise ValueError("DEEPGRAM_API_KEY is not set! Check your .env file.")
+
+        # Log key prefix for debugging (without exposing full key)
+        key_preview = settings.deepgram_api_key[:8] + "..." if len(settings.deepgram_api_key) > 8 else "???"
+        logger.info(f"Using Deepgram API key: {key_preview}")
+
         headers = {"Authorization": f"Token {settings.deepgram_api_key}"}
 
         logger.info("Connecting to Deepgram STT...")
+        logger.debug(f"STT URL: {settings.deepgram_stt_url}")
 
-        self._ws = await websockets.connect(
-            settings.deepgram_stt_url,
-            additional_headers=headers,
-            ping_interval=20,
-            ping_timeout=10,
-        )
+        try:
+            self._ws = await websockets.connect(
+                settings.deepgram_stt_url,
+                additional_headers=headers,
+                ping_interval=20,
+                ping_timeout=10,
+            )
+        except websockets.exceptions.InvalidStatus as e:
+            if e.response.status_code == 403:
+                logger.error(
+                    "Deepgram returned 403 Forbidden. "
+                    "This usually means the API key is invalid or not authorized. "
+                    f"Key used: {key_preview}"
+                )
+            raise
 
         self._connected.set()
         logger.info("Connected to Deepgram STT")
